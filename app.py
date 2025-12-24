@@ -82,10 +82,43 @@ with st.container():
 if st.button(" Predict Churn", key="predict"):
     try:
         st.info(" <b>Processing prediction...</b>", icon="⏳")
-        # ...existing code for preparing input and prediction...
-        # Dummy output for visual (replace with real prediction)
-        prob = 0.35
-        status = "Low Risk"
+        # Prepare input dictionary
+        input_dict = {
+            'tenure': tenure,
+            'MonthlyCharges': monthly_charges,
+            'TotalCharges': total_charges,
+            'SeniorCitizen': 1 if senior_citizen == 'Yes' else 0,
+            'InternetService_DSL': 1 if internet_service == 'DSL' else 0,
+            'InternetService_Fiber optic': 1 if internet_service == 'Fiber optic' else 0,
+            'InternetService_No': 1 if internet_service == 'No' else 0,
+            'Contract_Month-to-month': 1 if contract == 'Month-to-month' else 0,
+            'Contract_One year': 1 if contract == 'One year' else 0,
+            'Contract_Two year': 1 if contract == 'Two year' else 0,
+            'TechSupport_Yes': 1 if tech_support == 'Yes' else 0,
+            'TechSupport_No': 1 if tech_support == 'No' else 0,
+            'OnlineSecurity_Yes': 1 if online_security == 'Yes' else 0,
+            'OnlineSecurity_No': 1 if online_security == 'No' else 0,
+            'StreamingTV_Yes': 1 if streaming_tv == 'Yes' else 0,
+            'StreamingTV_No': 1 if streaming_tv == 'No' else 0,
+            'PaymentMethod_Electronic check': 1 if payment_method == 'Electronic check' else 0,
+            'PaymentMethod_Mailed check': 1 if payment_method == 'Mailed check' else 0,
+            'PaymentMethod_Bank transfer': 1 if payment_method == 'Bank transfer' else 0,
+            'PaymentMethod_Credit card': 1 if payment_method == 'Credit card' else 0
+        }
+
+        # Pastikan semua fitur yang dibutuhkan model ada
+        input_features = {k: 0 for k in feature_names}
+        for k, v in input_dict.items():
+            if k in input_features:
+                input_features[k] = v
+
+        # Buat DataFrame input
+        X_input = pd.DataFrame([input_features])
+        # Scaling
+        X_input_scaled = scaler.transform(X_input)
+        # Predict
+        prob = model.predict_proba(X_input_scaled)[0][1]
+        status = "Low Risk" if prob < 0.5 else ("Medium Risk" if prob < 0.8 else "High Risk")
         color = "#a6ffcb" if prob < 0.5 else ("#fff3cd" if prob < 0.8 else "#ffb3b3")
         icon = "✅" if prob < 0.5 else ("⚠️" if prob < 0.8 else "❌")
         st.markdown(f"""
@@ -93,7 +126,7 @@ if st.button(" Predict Churn", key="predict"):
             <h2 style='color: #1fa2ff;'>{icon} Prediction Result</h2>
             <h3 style='font-size: 2.5em;'>{prob*100:.1f}%</h3>
             <p style='font-size: 1.2em;'><b>Status:</b> {status}</p>
-            <p style='font-size: 1em; color: #555;'>Pelanggan kemungkinan akan tetap berlangganan</p>
+            <p style='font-size: 1em; color: #555;'>Pelanggan kemungkinan akan {'tetap berlangganan' if prob < 0.5 else ('berisiko churn' if prob < 0.8 else 'sangat berisiko churn')}</p>
         </div>
         """, unsafe_allow_html=True)
     except Exception as e:
