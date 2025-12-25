@@ -44,7 +44,23 @@ st.set_page_config(page_title="Telco Churn Predictor", layout="wide", page_icon=
 def load_model():
     model = joblib.load('best_churn_model.pkl')
     features = joblib.load('feature_names.pkl')
-    metadata = joblib.load('model_metadata.pkl')
+    
+    # Load metadata if available
+    metadata = {}
+    try:
+        metadata = joblib.load('model_metadata.pkl')
+    except FileNotFoundError:
+        # Default metadata jika file tidak ditemukan
+        metadata = {
+            'model_name': 'Churn Prediction Model',
+            'processing_type': 'Preprocessing',
+            'dataset_type': 'Normal',
+            'accuracy': 0.0,
+            'precision': 0.0,
+            'recall': 0.0,
+            'f1_score': 0.0,
+            'trained_date': 'Unknown'
+        }
     
     # Load preprocessor/scaler if needed (for Preprocessing/Tuned models)
     scaler = None
