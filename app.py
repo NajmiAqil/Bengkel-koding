@@ -43,11 +43,20 @@ st.set_page_config(page_title="Telco Churn Predictor", layout="wide", page_icon=
 @st.cache_resource
 def load_model():
     model = joblib.load('best_churn_model.pkl')
-    scaler = joblib.load('scaler.pkl')
     features = joblib.load('feature_names.pkl')
-    return model, scaler, features
+    metadata = joblib.load('model_metadata.pkl')
+    
+    # Load preprocessor/scaler if needed (for Preprocessing/Tuned models)
+    scaler = None
+    if metadata.get('processing_type') in ['Preprocessing', 'Tuned']:
+        try:
+            scaler = joblib.load('scaler.pkl')
+        except FileNotFoundError:
+            pass
+    
+    return model, scaler, features, metadata
 
-model, scaler, feature_names = load_model()
+model, scaler, feature_names, metadata = load_model()
 
 # Title and description
 st.markdown("""
@@ -114,8 +123,11 @@ if st.button(" Predict Churn", key="predict"):
 
         # Buat DataFrame input
         X_input = pd.DataFrame([input_features])
-        # Scaling
-        X_input_scaled = scaler.transform(X_input)
+        # Scaling (hanya jika scaler tersedia)
+        if scaler is not None:
+            X_input_scaled = scaler.transform(X_input)
+        else:
+            X_input_scaled = X_input.values
         # Predict
         prob = model.predict_proba(X_input_scaled)[0][1]
         status = "Low Risk" if prob < 0.5 else ("Medium Risk" if prob < 0.8 else "High Risk")
@@ -134,12 +146,16 @@ if st.button(" Predict Churn", key="predict"):
 
 # Model information
 with st.expander("📊 Model Information"):
-    st.markdown("""
+    st.markdown(f"""
     <ul>
-    <li><b>Model:</b> Random Forest (Tuned)</li>
-    <li><b>Accuracy:</b> 0.8150</li>
-    <li><b>F1-Score:</b> 0.6542</li>
-    <li><b>Training Data:</b> 7,043 records</li>
+    <li><b>Model:</b> {metadata.get('model_name', 'Unknown')}</li>
+    <li><b>Processing Type:</b> {metadata.get('processing_type', 'Unknown')}</li>
+    <li><b>Dataset Type:</b> {metadata.get('dataset_type', 'Normal')}</li>
+    <li><b>Accuracy:</b> {metadata.get('accuracy', 0):.4f}</li>
+    <li><b>Precision:</b> {metadata.get('precision', 0):.4f}</li>
+    <li><b>Recall:</b> {metadata.get('recall', 0):.4f}</li>
+    <li><b>F1-Score:</b> {metadata.get('f1_score', 0):.4f}</li>
+    <li><b>Trained:</b> {metadata.get('trained_date', 'Unknown')}</li>
     </ul>
     """, unsafe_allow_html=True)
 
